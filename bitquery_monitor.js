@@ -75,7 +75,10 @@ class BitQueryTradeMonitor {
     });
 
     this.ws.on("message", (data) => {
-      this.handleMessage(data);
+      // Make message handling async to avoid blocking the WebSocket
+      this.handleMessage(data).catch((error) => {
+        console.error("Error in handleMessage:", error);
+      });
     });
 
     this.ws.on("close", (code, reason) => {
@@ -157,8 +160,8 @@ class BitQueryTradeMonitor {
     }
   }
 
-  // Handle incoming messages
-  handleMessage(data) {
+  // Handle incoming messages (async to prevent blocking WebSocket)
+  async handleMessage(data) {
     try {
       const response = JSON.parse(data);
 
@@ -178,7 +181,8 @@ class BitQueryTradeMonitor {
         response.payload?.data?.Solana?.DEXTrades
       ) {
         const trades = response.payload.data.Solana.DEXTrades;
-        this.processTrades(trades);
+        // Process trades asynchronously to avoid blocking
+        await this.processTrades(trades);
       }
 
       // Handle keep-alive messages
@@ -195,8 +199,10 @@ class BitQueryTradeMonitor {
     }
   }
 
-  // Process incoming trades and filter by address list
-  processTrades(trades) {
+  // Process incoming trades and filter by address list (async to prevent blocking)
+  async processTrades(trades) {
+    const matchPromises = [];
+
     for (const trade of trades) {
       const signer = trade.Transaction?.Signer;
 
@@ -210,20 +216,30 @@ class BitQueryTradeMonitor {
 
         this.matchedTrades.push(matchedTrade);
 
-        // Save immediately to file (append mode)
-        this.saveTradeToFile(matchedTrade);
+        // Save asynchronously to file without blocking
+        matchPromises.push(this.saveTradeToFile(matchedTrade));
       }
+    }
+
+    // Process all file writes concurrently
+    if (matchPromises.length > 0) {
+      await Promise.all(matchPromises);
     }
   }
 
-  // Save individual trade to file
-  saveTradeToFile(trade) {
-    const csvLine = `${trade.signature},${trade.signer},${trade.blockTime}\n`;
+  // Save individual trade to file (async to prevent blocking)
+  async saveTradeToFile(trade) {
+    return new Promise((resolve, reject) => {
+      const csvLine = `${trade.signature},${trade.signer},${trade.blockTime}\n`;
 
-    fs.appendFile("matched_trades.csv", csvLine, (err) => {
-      if (err) {
-        console.error("Error writing to file:", err);
-      }
+      fs.appendFile("matched_trades.csv", csvLine, (err) => {
+        if (err) {
+          console.error("Error writing to file:", err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 
