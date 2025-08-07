@@ -9,15 +9,15 @@ class BitQueryTradeMonitor {
     this.addressSet = new Set();
     this.matchedTrades = [];
     this.startTime = null;
-    this.duration = 60 * 1000; // 1 minute in milliseconds
+    this.duration = 30 * 60 * 1000 
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 5000; // 5 seconds
+    this.reconnectDelay = 3000; // 3 seconds
     this.subscriptionId = "dex-trades-subscription"; // Unique ID for the subscription
 
     // Silent disconnect detection
     this.lastDataReceived = null;
-    this.silentDisconnectTimeout = 30000; // 30 seconds without data = silent disconnect
+    this.silentDisconnectTimeout = 20000; // 20 seconds without data = silent disconnect
     this.silentDisconnectTimer = null;
     this.heartbeatInterval = null;
   }
@@ -322,8 +322,6 @@ class BitQueryTradeMonitor {
     // Stop silent disconnect detection
     this.stopSilentDisconnectDetection();
 
-    // For BitQuery streams, just close the WebSocket
-    // No need to send stop message as it's not bidirectional
     if (this.ws) {
       this.ws.close(1000, "Normal closure");
     }
