@@ -9,7 +9,7 @@ class BitQueryTradeMonitor {
     this.addressSet = new Set();
     this.matchedTrades = [];
     this.startTime = null;
-    this.duration = 30 * 60 * 1000 
+    this.duration = 30 * 60 * 1000;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000; // 3 seconds
